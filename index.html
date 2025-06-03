@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Consistent Character Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>            <h1>Consistent Character Generator</h1>
+            <p class="subtitle">Create images of a given character in different poses</p>
+            <div id="serverStatus" class="server-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking server connection...</span>
+            </div>
+        </header>
+
+        <main>            <section class="upload-section">
+                <div id="uploadArea" class="upload-area">
+                    <div id="uploadPlaceholder" class="upload-placeholder">
+                        <div class="upload-icon">📸</div>
+                        <p>Drop your reference image here</p>
+                        <small>or click to browse (JPG, PNG, WebP)</small>
+                        <small>Best images are square close ups of a face, but they do not have to be.</small>
+                        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    </div>
+                    <div id="imagePreview" class="image-preview" style="display: none;">
+                        <div class="preview-container" style="position: relative; display: inline-block; margin-bottom: 20px;">
+                            <img id="previewImage" alt="Reference Image Preview" style="max-width: 100%; max-height: 400px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            <button id="removeImage" class="remove-image" title="Remove image" style="position: absolute; top: -15px; right: -15px; width: 40px; height: 40px; border-radius: 50%; background: #ef4444; color: white; border: none; cursor: pointer; font-size: 18px; font-weight: bold;">×</button>
+                        </div>
+                        
+                        <div class="image-info" style="background: #f1f5f9; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: left;">
+                            <h4 style="margin: 0 0 15px 0; color: #334155;">📋 Reference Image Details</h4>
+                            <div class="info-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="info-item" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                    <span class="info-label" style="color: #64748b; font-size: 14px;">File Name:</span>
+                                    <span class="info-value" id="fileName" style="color: #334155; font-weight: 500; font-size: 14px;">-</span>
+                                </div>
+                                <div class="info-item" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                    <span class="info-label" style="color: #64748b; font-size: 14px;">File Size:</span>
+                                    <span class="info-value" id="fileSize" style="color: #334155; font-weight: 500; font-size: 14px;">-</span>
+                                </div>
+                                <div class="info-item" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                    <span class="info-label" style="color: #64748b; font-size: 14px;">Dimensions:</span>
+                                    <span class="info-value" id="imageDimensions" style="color: #334155; font-weight: 500; font-size: 14px;">-</span>
+                                </div>
+                                <div class="info-item" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
+                                    <span class="info-label" style="color: #64748b; font-size: 14px;">Format:</span>
+                                    <span class="info-value" id="imageFormat" style="color: #334155; font-weight: 500; font-size: 14px;">-</span>
+                                </div>
+                            </div>
+                            <div class="status-badge" style="display: inline-flex; align-items: center; gap: 8px; background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; margin-top: 20px;">
+                                <span class="status-icon">✅</span>
+                                <span>Ready for generation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>            </section>
+
+            <!-- Reference Image Preview Section (Above Prompt Table) -->
+            <section id="referencePreviewSection" class="reference-preview-section" style="display: none;">
+                <div class="reference-preview-header">
+                    <h3>📸 Reference Image Loaded</h3>
+                    <p>Your reference image is ready for generation</p>
+                </div>
+                <div class="reference-preview-container">
+                    <img id="referencePreviewImage" alt="Reference Image" class="reference-preview-img">
+                    <div class="reference-info">
+                        <div class="reference-name" id="referenceFileName">image.jpg</div>
+                        <div class="reference-details">
+                            <span id="referenceDimensions">1024x1024</span> • 
+                            <span id="referenceSize">2.5MB</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="main-content">
+                <section class="input-section">
+                    <div class="input-group">
+                        <label for="promptInput">Prompt</label>
+                        <textarea id="promptInput" rows="3" placeholder="A closeup headshot photo of a person. Include clothes and hairstyle for more consistency."></textarea>
+                        <small class="input-help">Describe the subject. A closeup headshot photo of a person. Include clothes and hairstyle for more consistency.</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="negativePromptInput">Negative Prompt</label>
+                        <textarea id="negativePromptInput" rows="2">(worst quality:2), (low quality:2), (normal quality:2), low-res, watermark, the worst resolution, bad resolution, monochrome, grayscale,</textarea>
+                        <small class="input-help">Things you do not want to see in your image</small>
+                    </div>
+                </section>
+
+                <section class="settings-section">
+                    <div class="settings-grid">
+                        <div class="setting-group">
+                            <label for="numberOfOutputs">Number of Outputs</label>
+                            <select id="numberOfOutputs">
+                                <option value="1">1 image</option>
+                                <option value="3">3 images</option>
+                                <option value="5" selected>5 images</option>
+                                <option value="10">10 images</option>
+                                <option value="20">20 images</option>
+                            </select>
+                            <small class="setting-help">The number of images to generate (1-20)</small>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="imagesPerPose">Images Per Pose</label>
+                            <select id="imagesPerPose">
+                                <option value="1" selected>1 image</option>
+                                <option value="2">2 images</option>
+                                <option value="3">3 images</option>
+                                <option value="4">4 images</option>
+                            </select>
+                            <small class="setting-help">Number of images to generate for each pose (1-4)</small>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="outputFormat">Output Format</label>
+                            <select id="outputFormat">
+                                <option value="webp" selected>WebP</option>
+                                <option value="jpg">JPG</option>
+                                <option value="png">PNG</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="outputQuality">Output Quality: <span id="qualityValue">80</span></label>
+                            <input type="range" id="outputQuality" min="0" max="100" value="80" step="1">
+                            <small class="setting-help">Quality of output images (0-100). Higher is better quality.</small>
+                        </div>
+
+                        <div class="setting-group">
+                            <label for="seed">Seed</label>
+                            <input type="number" id="seed" placeholder="Random" step="1">
+                            <small class="setting-help">Set a seed for reproducibility. Leave empty for random.</small>
+                        </div>
+
+                        <div class="setting-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="randomisePoses" checked>
+                                <span>Randomise Poses</span>
+                            </label>
+                            <small class="setting-help">Randomise the poses used in generation</small>
+
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="disableSafetyChecker">
+                                <span>Disable Safety Checker</span>
+                            </label>
+                            <small class="setting-help">Warning: Only works when running locally</small>
+                        </div>
+                    </div>
+                </section>
+            </div>            <button id="generateBtn" class="generate-btn" disabled>
+                <span id="generateText">Generate Images</span>
+                <span id="loadingSpinner" class="spinner" style="display: none;"></span>
+            </button>            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <!-- Generated Images Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <div id="generationInfo"></div>
+                <div id="imageGrid" class="image-grid"></div>
+            </section>
+
+            <!-- Example Images Section -->
+            <section class="examples-section">
+                <h3>How it works - Example Results</h3>
+                <p class="examples-description">See how the application generates consistent character images in different poses from a single reference image:</p>
+                  <div class="example-group">
+                    <div class="example-header">
+                        <h4>Example 1: Portrait Photography</h4>
+                        <p>Reference image + Prompt: "A professional headshot photo of a man in a shirt"</p>
+                    </div>
+                    <div class="example-images">
+                        <div class="example-reference">
+                            <div class="example-image-container reference">
+                                <img src="img/ref_man_01.webp" alt="Reference image of a man" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Reference Image</p>
+                                    <small>Your uploaded photo</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="example-arrow">→</div>
+                        <div class="example-results">
+                            <div class="example-image-container result">
+                                <img src="img/gen_man_01.webp" alt="Generated image 1" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Generated 1</p>
+                                    <small>Professional pose</small>
+                                </div>
+                            </div>
+                            <div class="example-image-container result">
+                                <img src="img/gen_man_02.webp" alt="Generated image 2" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Generated 2</p>
+                                    <small>Casual pose</small>
+                                </div>
+                            </div>
+                            <div class="example-image-container result">
+                                <img src="img/gen_man_03.webp" alt="Generated image 3" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Generated 3</p>
+                                    <small>Artistic angle</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>                <div class="example-group">
+                    <div class="example-header">
+                        <h4>Example 2: Character Art</h4>
+                        <p>Reference image + Prompt: "A a woman in an Indian attire, cinematic lighting"</p>
+                    </div>
+                    <div class="example-images">
+                        <div class="example-reference">
+                            <div class="example-image-container reference">
+                                <img src="img/ref_indi_01.webp" alt="Reference image of a person" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Reference Image</p>
+                                    <small>Character photo</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="example-arrow">→</div>
+                        <div class="example-results">
+                            <div class="example-image-container result">
+                                <img src="img/gen_indi_01.webp" alt="Generated character image 1" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Generated 1</p>
+                                    <small>Warrior pose</small>
+                                </div>
+                            </div>
+                            <div class="example-image-container result">
+                                <img src="img/gen_indi_02.webp" alt="Generated character image 2" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Generated 2</p>
+                                    <small>Noble stance</small>
+                                </div>
+                            </div>
+                            <div class="example-image-container result">
+                                <img src="img/gen_indi_03.webp" alt="Generated character image 3" class="example-image">
+                                <div class="example-overlay">
+                                    <p>Generated 3</p>
+                                    <small>Mystical pose</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="how-to-use">
+                    <h4>How to get the best results:</h4>
+                    <ul>
+                        <li>✅ Use clear, well-lit reference images</li>
+                        <li>✅ Square or close-up face photos work best</li>
+                        <li>✅ Include clothing and hairstyle details in your prompt</li>
+                        <li>✅ Try different poses with the "Randomise Poses" option</li>
+                        <li>⚠️ Avoid blurry or low-quality reference images</li>
+                    </ul>
+                </div>            </section>
+        </main>
+
+        <footer>
+            <p>Powered by Consistent-Character • Made with ❤️</p>
+        </footer>
+    </div>    <div id="previewPopup" class="preview-popup">
+        <button id="closePreview" class="close-preview">×</button>
+        <img id="popupPreviewImage" src="" alt="Preview">
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

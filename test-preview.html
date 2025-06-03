@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reference Image Preview - Consistent Images</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .upload-section {
+            padding: 40px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #e2e8f0;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f1f5f9;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #eef2ff;
+            transform: scale(1.02);
+        }
+        
+        .upload-placeholder {
+            display: block;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+        
+        .upload-text {
+            font-size: 18px;
+            color: #334155;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .upload-hint {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .image-preview {
+            display: none;
+            position: relative;
+            text-align: center;
+        }
+        
+        .preview-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .remove-image {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .remove-image:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .image-info {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .image-info h3 {
+            margin: 0 0 15px 0;
+            color: #334155;
+            font-size: 16px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .info-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            color: #334155;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 20px;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: all 0.2s ease;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .log {
+            margin: 20px 40px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #64748b;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Reference Image Upload</h1>
+            <p>Upload a reference image to generate consistent variations</p>
+        </div>
+        
+        <div class="upload-section">
+            <div id="uploadArea" class="upload-area">
+                <div id="uploadPlaceholder" class="upload-placeholder">
+                    <div class="upload-icon">🖼️</div>
+                    <div class="upload-text">Drop your reference image here</div>
+                    <div class="upload-hint">or click to browse (JPG, PNG, WebP, max 10MB)</div>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                </div>
+                
+                <div id="imagePreview" class="image-preview">
+                    <div class="preview-container">
+                        <img id="previewImage" alt="Reference Image Preview">
+                        <button id="removeImage" class="remove-image" title="Remove image">×</button>
+                    </div>
+                    
+                    <div class="image-info">
+                        <h3>📋 Image Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">File Name:</span>
+                                <span class="info-value" id="fileName">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">File Size:</span>
+                                <span class="info-value" id="fileSize">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Dimensions:</span>
+                                <span class="info-value" id="imageDimensions">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Format:</span>
+                                <span class="info-value" id="imageFormat">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-badge">
+                        ✅ Ready for generation
+                        <button class="generate-btn">Generate Similar Images</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="log" class="log"></div>
+
+    <script>
+        let currentImageFile = null;
+        let currentImageUrl = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            console.log(message);
+        }
+        
+        function showUploadPlaceholder() {
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            log('Showing upload placeholder');
+            uploadPlaceholder.style.display = 'block';
+            imagePreview.style.display = 'none';
+        }
+        
+        function showImagePreview() {
+            const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            log('Showing image preview');
+            uploadPlaceholder.style.display = 'none';
+            imagePreview.style.display = 'block';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function updateImageInfo(file, img) {
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('imageDimensions').textContent = `${img.naturalWidth} × ${img.naturalHeight}px`;
+            document.getElementById('imageFormat').textContent = file.type.split('/')[1].toUpperCase();
+        }
+        
+        function handleFileSelect(file) {
+            log('handleFileSelect called with: ' + (file ? file.name : 'null'));
+            
+            if (!file || !file.type.startsWith('image/')) {
+                log('Invalid file type');
+                alert('Please select a valid image file (JPG, PNG, WebP)');
+                return;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                log('File too large: ' + formatFileSize(file.size));
+                alert('File size must be less than 10MB');
+                return;
+            }
+            
+            if (currentImageUrl) {
+                URL.revokeObjectURL(currentImageUrl);
+            }
+            
+            currentImageFile = file;
+            currentImageUrl = URL.createObjectURL(file);
+            
+            const previewImage = document.getElementById('previewImage');
+            previewImage.onload = function() {
+                updateImageInfo(file, previewImage);
+                log('Image loaded successfully: ' + file.name);
+            };
+            previewImage.src = currentImageUrl;
+            
+            showImagePreview();
+        }
+        
+        function removeImage() {
+            if (currentImageUrl) {
+                URL.revokeObjectURL(currentImageUrl);
+            }
+            currentImageFile = null;
+            currentImageUrl = null;
+            document.getElementById('imageInput').value = '';
+            showUploadPlaceholder();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const imageInput = document.getElementById('imageInput');
+            const removeBtn = document.getElementById('removeImage');
+            const generateBtn = document.querySelector('.generate-btn');
+            
+            log('Setting up enhanced event listeners');
+            
+            // Click to upload
+            uploadArea.addEventListener('click', function(e) {
+                if (!currentImageFile && !e.target.closest('.generate-btn')) {
+                    imageInput.click();
+                }
+            });
+            
+            // File input change
+            imageInput.addEventListener('change', function(e) {
+                handleFileSelect(e.target.files[0]);
+            });
+            
+            // Remove button
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                removeImage();
+            });
+            
+            // Generate button
+            generateBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (currentImageFile) {
+                    log('Generate button clicked - ready to process: ' + currentImageFile.name);
+                    alert('Integration with image generation API would happen here!');
+                }
+            });
+            
+            // Enhanced drag and drop with visual feedback
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                handleFileSelect(file);
+            });
+            
+            log('Enhanced preview system initialized');
+        });
+    </script>
+</body>
+</html>
