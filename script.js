@@ -7,11 +7,24 @@ class ConsistentImageGenerator {
         this.lastGenerationTime = 0;
         this.minTimeBetweenGenerations = 5000; // 5 seconds
         
+        // API Configuration - automatically detect environment
+        this.apiBase = this.getApiBase();
+        
         this.initializeElements();
         this.attachEventListeners();
         this.resetOnPageLoad();
         this.checkServerStatus();
-    }    initializeElements() {
+    }    getApiBase() {
+        // Check if we're running on Netlify
+        if (window.location.hostname.includes('netlify.app') || 
+            window.location.hostname.includes('netlify.com') ||
+            window.location.hostname !== 'localhost') {
+            console.log('🌐 Using Netlify Functions API');
+            return '/api'; // Netlify Functions
+        }
+        console.log('🏠 Using Local Development API');
+        return 'http://localhost:3002/api'; // Local development
+    }initializeElements() {
         // File upload elements
         this.uploadArea = document.getElementById('uploadArea');
         this.imageInput = document.getElementById('imageInput');
@@ -68,10 +81,9 @@ class ConsistentImageGenerator {
         this.qualityValue = document.getElementById('qualityValue');
         this.seed = document.getElementById('seed');
         this.randomisePoses = document.getElementById('randomisePoses');
-        this.disableSafetyChecker = document.getElementById('disableSafetyChecker');
-        this.serverStatus = document.getElementById('serverStatus');
-        this.statusDot = this.serverStatus.querySelector('.status-dot');
-        this.statusText = this.serverStatus.querySelector('.status-text');
+        this.disableSafetyChecker = document.getElementById('disableSafetyChecker');        this.serverStatus = document.getElementById('serverStatus');
+        this.statusDot = this.serverStatus?.querySelector('.status-dot');
+        this.statusText = this.serverStatus?.querySelector('.status-text');
 
         this.previewPopup = document.getElementById('previewPopup');
         this.popupPreviewImage = document.getElementById('popupPreviewImage');
@@ -269,11 +281,9 @@ class ConsistentImageGenerator {
         this.hideResults();
         this.hideError();
         this.updateGenerateButton();
-    }
-
-    async checkServerStatus() {
+    }    async checkServerStatus() {
         try {
-            const response = await fetch('http://localhost:3002/api/health');
+            const response = await fetch(`${this.apiBase}/health`);
             const data = await response.json();
             
             if (response.ok && data.status === 'ok') {
@@ -463,17 +473,23 @@ class ConsistentImageGenerator {
             if (!this.promptInput.value.trim()) {
                 this.showError('Please enter a prompt.');
                 return;
-            }
-
-            // Check prompt for potential issues
+            }            // Enhanced prompt validation
             const prompt = this.promptInput.value.trim().toLowerCase();
-            if (prompt.includes('nude') || prompt.includes('naked') || prompt.includes('explicit')) {
+            const inappropriateKeywords = ['nude', 'naked', 'explicit', 'nsfw', 'porn', 'sexual'];
+            const hasInappropriateContent = inappropriateKeywords.some(keyword => prompt.includes(keyword));
+            
+            if (hasInappropriateContent) {
                 this.showError('Please avoid prompts that could generate inappropriate content.');
                 return;
             }
 
-            this.setGeneratingState(true);
-              const formData = new FormData();
+            // Check minimum prompt length
+            if (prompt.length < 5) {
+                this.showError('Please provide a more detailed prompt (at least 5 characters).');
+                return;
+            }this.setGeneratingState(true);
+            
+            const formData = new FormData();
             formData.append('image', this.currentImageFile);
             formData.append('prompt', this.promptInput.value.trim());
             formData.append('number_of_outputs', this.numberOfOutputs.value);
@@ -489,10 +505,8 @@ class ConsistentImageGenerator {
 
             if (this.negativePromptInput.value.trim()) {
                 formData.append('negative_prompt', this.negativePromptInput.value.trim());
-            }
-
-            console.log('Sending request to server...');
-            const response = await fetch('http://localhost:3002/api/generate', {
+            }            console.log('Sending request to server...');
+            const response = await fetch(`${this.apiBase}/generate`, {
                 method: 'POST',
                 body: formData
             });
@@ -529,17 +543,15 @@ class ConsistentImageGenerator {
         } finally {
             this.setGeneratingState(false);
         }
-    }
-
-    setGeneratingState(generating) {
+    }    setGeneratingState(generating) {
         this.isGenerating = generating;
         
         if (generating) {
-            this.generateText.textContent = 'Generating...';
-            this.loadingSpinner.style.display = 'block';
+            if (this.generateText) this.generateText.textContent = 'Generating...';
+            if (this.loadingSpinner) this.loadingSpinner.style.display = 'block';
         } else {
-            this.generateText.textContent = 'Generate Images';
-            this.loadingSpinner.style.display = 'none';
+            if (this.generateText) this.generateText.textContent = 'Generate Images';
+            if (this.loadingSpinner) this.loadingSpinner.style.display = 'none';
         }
         
         this.updateGenerateButton();
@@ -579,25 +591,31 @@ class ConsistentImageGenerator {
         
         this.resultsSection.style.display = 'block';
         this.resultsSection.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    showError(message) {
-        this.errorMessage.textContent = message;
-        this.errorMessage.style.display = 'block';
-        
-        // Only auto-hide non-critical errors
-        if (!message.includes('wait') && !message.includes('safety')) {
-            setTimeout(() => this.hideError(), 5000);
+    }    showError(message) {
+        if (this.errorMessage) {
+            this.errorMessage.textContent = message;
+            this.errorMessage.style.display = 'block';
+            
+            // Only auto-hide non-critical errors
+            if (!message.includes('wait') && !message.includes('safety')) {
+                setTimeout(() => this.hideError(), 5000);
+            }
+        } else {
+            console.error('Error message element not found:', message);
         }
     }
 
     hideError() {
-        this.errorMessage.style.display = 'none';
+        if (this.errorMessage) {
+            this.errorMessage.style.display = 'none';
+        }
     }
 
     hideResults() {
-        this.resultsSection.style.display = 'none';
-    }    showPreview(imageUrl) {
+        if (this.resultsSection) {
+            this.resultsSection.style.display = 'none';
+        }
+    }showPreview(imageUrl) {
         this.popupPreviewImage.src = imageUrl;
         this.previewPopup.classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -726,11 +744,9 @@ class ConsistentImageGenerator {
                     color: #6B7280;
                     margin-left: 0.5rem;
                 }
-            `;
-            document.head.appendChild(modalStyles);
+            `;        document.head.appendChild(modalStyles);
         }
-    }
-}
+    }}
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {

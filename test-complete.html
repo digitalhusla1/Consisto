@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; margin: 10px 0; border: none; border-radius: 4px; cursor: pointer; }
+        .test-btn { background-color: #007bff; color: white; }
+        .test-btn:hover { background-color: #0056b3; }
+        input[type="file"] { margin: 10px 0; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        #results { margin-top: 20px; }
+        .image-result { margin: 10px; max-width: 200px; border: 1px solid #ddd; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Complete System Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Server Health Check</h2>
+        <button class="test-btn" onclick="testServerHealth()">Test Server Health</button>
+        <div id="healthStatus" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Image Upload & Generation Test</h2>
+        <div>
+            <label>Upload Test Image:</label><br>
+            <input type="file" id="testImage" accept="image/*">
+        </div>
+        <div>
+            <label>Test Prompt:</label><br>
+            <textarea id="testPrompt" placeholder="A closeup headshot photo of a person in professional attire">A closeup headshot photo of a person in professional attire</textarea>
+        </div>
+        <button class="test-btn" onclick="testImageGeneration()">Test Image Generation</button>
+        <div id="generateStatus" class="status" style="display: none;"></div>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Prompt Validation Test</h2>
+        <button class="test-btn" onclick="testPromptValidation()">Test Prompt Validation</button>
+        <div id="promptStatus" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function testServerHealth() {
+            const statusDiv = document.getElementById('healthStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = 'Testing server connection...';
+            statusDiv.className = 'status warning';
+
+            try {
+                const response = await fetch('http://localhost:3002/api/health');
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'ok') {
+                    statusDiv.textContent = '✅ Server is online and API is authenticated!';
+                    statusDiv.className = 'status success';
+                    console.log('Health check data:', data);
+                } else {
+                    statusDiv.textContent = '❌ Server health check failed: ' + (data.error || 'Unknown error');
+                    statusDiv.className = 'status error';
+                }
+            } catch (error) {
+                statusDiv.textContent = '❌ Cannot connect to server: ' + error.message;
+                statusDiv.className = 'status error';
+            }
+        }
+
+        async function testImageGeneration() {
+            const statusDiv = document.getElementById('generateStatus');
+            const resultsDiv = document.getElementById('results');
+            const fileInput = document.getElementById('testImage');
+            const promptInput = document.getElementById('testPrompt');
+
+            statusDiv.style.display = 'block';
+            resultsDiv.innerHTML = '';
+
+            if (!fileInput.files[0]) {
+                statusDiv.textContent = '❌ Please select an image file first';
+                statusDiv.className = 'status error';
+                return;
+            }
+
+            if (!promptInput.value.trim()) {
+                statusDiv.textContent = '❌ Please enter a prompt';
+                statusDiv.className = 'status error';
+                return;
+            }
+
+            statusDiv.textContent = '🔄 Testing image generation... This may take 1-2 minutes...';
+            statusDiv.className = 'status warning';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', fileInput.files[0]);
+                formData.append('prompt', promptInput.value.trim());
+                formData.append('number_of_outputs', '2'); // Small test
+                formData.append('output_format', 'webp');
+                formData.append('output_quality', '80');
+                formData.append('randomise_poses', 'true');
+
+                const response = await fetch('http://localhost:3002/api/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    statusDiv.textContent = `✅ Generation successful! Created ${data.images.length} images in ${data.duration}s`;
+                    statusDiv.className = 'status success';
+                    
+                    // Display results
+                    resultsDiv.innerHTML = '<h3>Generated Images:</h3>';
+                    data.images.forEach((imageUrl, index) => {
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.alt = `Generated image ${index + 1}`;
+                        img.className = 'image-result';
+                        resultsDiv.appendChild(img);
+                    });
+                } else {
+                    statusDiv.textContent = '❌ Generation failed: ' + (data.error || 'Unknown error');
+                    statusDiv.className = 'status error';
+                }
+            } catch (error) {
+                statusDiv.textContent = '❌ Generation error: ' + error.message;
+                statusDiv.className = 'status error';
+            }
+        }
+
+        async function testPromptValidation() {
+            const statusDiv = document.getElementById('promptStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '';
+
+            const testPrompts = [
+                { prompt: "A professional headshot photo", expected: "✅ Valid" },
+                { prompt: "nude person", expected: "❌ Should be blocked" },
+                { prompt: "A closeup headshot photo of a person in business attire", expected: "✅ Valid" },
+                { prompt: "naked person", expected: "❌ Should be blocked" },
+                { prompt: "explicit content", expected: "❌ Should be blocked" }
+            ];
+
+            let results = '<h4>Prompt Validation Results:</h4>';
+            
+            testPrompts.forEach(test => {
+                const isBlocked = test.prompt.toLowerCase().includes('nude') || 
+                                test.prompt.toLowerCase().includes('naked') || 
+                                test.prompt.toLowerCase().includes('explicit');
+                
+                const status = isBlocked ? "❌ Blocked (Good!)" : "✅ Allowed";
+                const expected = test.expected.includes('Should be blocked') ? "❌ Blocked (Good!)" : "✅ Allowed";
+                const match = status === expected ? "✅" : "❌";
+                
+                results += `<div style="margin: 5px 0; padding: 5px; background: ${match === '✅' ? '#d4edda' : '#f8d7da'};">
+                    <strong>Prompt:</strong> "${test.prompt}"<br>
+                    <strong>Result:</strong> ${status} <strong>Expected:</strong> ${expected} ${match}
+                </div>`;
+            });
+
+            statusDiv.innerHTML = results;
+            statusDiv.className = 'status success';
+        }
+
+        // Auto-run server health check on page load
+        window.addEventListener('load', testServerHealth);
+    </script>
+</body>
+</html>
